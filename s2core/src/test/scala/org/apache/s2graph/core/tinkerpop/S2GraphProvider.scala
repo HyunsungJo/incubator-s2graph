@@ -76,13 +76,13 @@ class S2GraphProvider extends AbstractGraphProvider {
     var knowsProp = Vector(
       Prop("weight", "0.0", "double"),
       Prop("data", "-", "string"),
-      Prop("year", "-1", "integer"),
+      Prop("year", "-1", "long"),
       Prop("boolean", "false", "boolean"),
       Prop("float", "0.0", "float"),
       Prop("double", "0.0", "double"),
       Prop("long", "0.0", "long"),
       Prop("string", "-", "string"),
-      Prop("integer", "-", "integer"),
+      Prop("integer", "0", "integer"),
       Prop("aKey", "-", "string")
     )
 

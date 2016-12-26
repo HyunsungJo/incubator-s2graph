@@ -534,19 +534,21 @@ case class S2Edge(innerGraph: S2Graph,
   }
 
   override def vertices(direction: Direction): util.Iterator[structure.Vertex] = {
+    def newVertexOpt(vtx: S2Vertex) = {
+      val newVertexId = VertexId(ServiceColumn.findById(vtx.id.colId), vtx.innerId)
+      innerGraph.getVertex(newVertexId)
+    }
     val arr = new util.ArrayList[Vertex]()
     direction match {
       case Direction.OUT =>
-        val newVertexId = VertexId(ServiceColumn.findById(srcForVertex.id.colId), srcForVertex.innerId)
-        arr.add(srcVertex.copy(id = newVertexId))
-//        arr.add(srcVertex)
+        newVertexOpt(srcForVertex).foreach { newVertex => arr.add(newVertex) }
+
       case Direction.IN =>
-        val newVertexId = VertexId(ServiceColumn.findById(tgtForVertex.id.colId), tgtForVertex.innerId)
-        arr.add(tgtVertex.copy(id = newVertexId))
-//        arr.add(tgtVertex)
+        newVertexOpt(tgtForVertex).foreach { newVertex => arr.add(newVertex)}
+
       case _ =>
-        arr.add(srcVertex)
-        arr.add(tgtVertex)
+        newVertexOpt(srcForVertex).foreach { newVertex => arr.add(newVertex) }
+        newVertexOpt(tgtForVertex).foreach { newVertex => arr.add(newVertex)}
     }
     arr.iterator()
   }
