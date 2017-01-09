@@ -83,7 +83,8 @@ class S2GraphProvider extends AbstractGraphProvider {
       Prop("long", "0.0", "long"),
       Prop("string", "-", "string"),
       Prop("integer", "0", "integer"),
-      Prop("aKey", "-", "string")
+      Prop("aKey", "-", "string"),
+      Prop("stars", "0", "integer")
     )
 
    // Change dataType for ColumnMeta('aKey') for PropertyFeatureSupportTest

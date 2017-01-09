@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.structure._
 import scala.util.hashing.MurmurHash3
 
 object S2Property {
+  @deprecated
   def kvsToProps(kvs: Seq[AnyRef]): Map[String, AnyRef] = {
     import scala.collection.JavaConverters._
 
@@ -51,19 +52,55 @@ object S2Property {
     result
   }
 
+  @deprecated
   def assertValidProp[A](key: Any, value: A): Unit = {
     if (key == null) throw Property.Exceptions.propertyKeyCanNotBeEmpty()
     if (!key.isInstanceOf[String]) throw Element.Exceptions.providedKeyValuesMustHaveALegalKeyOnEvenIndices()
 
     if (value == null) throw Property.Exceptions.propertyValueCanNotBeNull()
-    if (value.isInstanceOf[Iterable[_]]) throw new java.lang.IllegalArgumentException("not supported data type")
-    if (value.isInstanceOf[Array[_]]) throw new java.lang.IllegalArgumentException("not supported data type")
-    if (value.isInstanceOf[java.util.List[_]]) throw new java.lang.IllegalArgumentException("not supported data type")
-    if (value.isInstanceOf[java.util.Map[_, _]]) throw new java.lang.IllegalArgumentException("not supported data type")
-
+    if (value.isInstanceOf[Iterable[_]] ||
+        value.isInstanceOf[Array[_]] ||
+        value.isInstanceOf[java.util.List[_]] ||
+        value.isInstanceOf[java.util.Map[_, _]] ||
+        (value.isInstanceOf[java.io.Serializable] &&
+            !value.isInstanceOf[java.lang.Number] &&
+            !value.isInstanceOf[String] &&
+            !value.isInstanceOf[Boolean])
+    ) {
+      throw Property.Exceptions.dataTypeOfPropertyValueNotSupported(value)
+    }
     if (key.toString.isEmpty) throw Property.Exceptions.propertyKeyCanNotBeEmpty()
     if (Graph.Hidden.isHidden(key.toString)) throw Property.Exceptions.propertyKeyCanNotBeAHiddenKey(Graph.Hidden.hide(key.toString))
 
+  }
+
+  def kvsToProps(graph: Graph, kvs: Seq[AnyRef]): Map[String, AnyRef] = {
+    import scala.collection.JavaConverters._
+
+    ElementHelper.legalPropertyKeyValueArray(kvs: _*)
+    val keySet = collection.mutable.Set[Any]()
+    val kvsList = ElementHelper.asPairs(kvs: _*).asScala
+    var result = Map[String, AnyRef]()
+    kvsList.foreach { pair =>
+      val key = pair.getValue0
+      val value = pair.getValue1
+      ElementHelper.validateProperty(key, value)
+      if (keySet.contains(key)) throw VertexProperty.Exceptions.multiPropertiesNotSupported
+
+      assertValidProp(graph, key, value)
+
+      keySet.add(key)
+      result = result + (key -> value)
+    }
+
+    result
+  }
+
+  def assertValidProp[A](graph: Graph, key: Any, value: A): Unit = {
+    if (key == T.id.name && !graph.features.vertex.willAllowId(value)) {
+      throw VertexProperty.Exceptions.userSuppliedIdsOfThisTypeNotSupported
+    }
+    assertValidProp(key, value)
   }
 }
 

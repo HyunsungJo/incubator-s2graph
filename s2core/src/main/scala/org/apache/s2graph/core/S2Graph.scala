@@ -533,12 +533,12 @@ object S2Graph {
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 @Graph.OptOuts(value = Array(
 // passed
-//  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.FeatureSupportTest", method="*", reason="no"), // pass
+  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.FeatureSupportTest", method="*", reason="no"), // pass
   new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.PropertyTest", method="*", reason="no"), // pass
-  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.VertexPropertyTest", method="*", reason="no"), // pass
-  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.VertexTest", method="*", reason="no"), // pss
-  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.EdgeTest", method="*", reason="no"), // pass
-  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.GraphConstructionTest", method="*", reason="no"), // pass
+//  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.VertexPropertyTest", method="*", reason="no"), // pass
+//  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.VertexTest", method="*", reason="no"), // pss
+//  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.EdgeTest", method="*", reason="no"), // pass
+//  new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.GraphConstructionTest", method="*", reason="no"), // pass
 
   new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest", method="*", reason="no"), // pass
   new Graph.OptOut(test="org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest", method="*", reason="no"), // pass one error
@@ -1533,10 +1533,14 @@ class S2Graph(_config: Config)(implicit val ec: ExecutionContext) extends Graph 
   override def configuration(): Configuration = apacheConfiguration
 
   override def addVertex(kvs: AnyRef*): structure.Vertex = {
-    if (!features().vertex().supportsUserSuppliedIds() && kvs.contains(T.id)) {
-      throw Vertex.Exceptions.userSuppliedIdsNotSupported
+    val kvsMap = S2Property.kvsToProps(this, kvs)
+    kvsMap.foreach {
+      case (k, v) if k == T.id.name && !features.vertex.properties.willAllowId(v) =>
+        throw Vertex.Exceptions.userSuppliedIdsOfThisTypeNotSupported
+      case _ =>
     }
-    val kvsMap = S2Property.kvsToProps(kvs)
+
+
     val id = kvsMap.getOrElse(T.id.toString, Random.nextLong)
     val serviceColumnNames = kvsMap.getOrElse(T.label.toString, DefaultColumn.columnName).toString
 

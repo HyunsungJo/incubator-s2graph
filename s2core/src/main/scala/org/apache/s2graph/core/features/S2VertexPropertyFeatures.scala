@@ -10,7 +10,11 @@ class S2VertexPropertyFeatures extends S2PropertyFeatures with Features.VertexPr
 
   override def supportsAddProperty(): Boolean = true
 
-  override def willAllowId(id: scala.Any): Boolean = true
+  override def willAllowId(id: scala.Any): Boolean = {
+    if (!supportsUserSuppliedIds) return false
+    if (supportsCustomIds) throw new UnsupportedOperationException("The default implementation is not capable of validating custom ids - please override")
+    (supportsStringIds && id.isInstanceOf[String]) || (supportsNumericIds && id.isInstanceOf[Number])
+  }
 
   override def supportsNumericIds(): Boolean = true
 
@@ -21,4 +25,6 @@ class S2VertexPropertyFeatures extends S2PropertyFeatures with Features.VertexPr
   override def supportsCustomIds(): Boolean = false
 
   override def supportsAnyIds(): Boolean = false
+
+
 }

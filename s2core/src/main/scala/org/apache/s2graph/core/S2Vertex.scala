@@ -20,19 +20,21 @@
 package org.apache.s2graph.core
 
 import java.util
-import java.util.function.{BiConsumer, Consumer}
+import java.util.UUID
+import java.util.function.{Consumer, BiConsumer}
 
 import org.apache.s2graph.core.GraphExceptions.LabelNotExistException
 import org.apache.s2graph.core.S2Vertex.Props
 import org.apache.s2graph.core.mysqls._
 import org.apache.s2graph.core.types._
 import org.apache.tinkerpop.gremlin.structure.Edge.Exceptions
-import org.apache.tinkerpop.gremlin.structure.Graph.Features.{ElementFeatures, VertexFeatures}
+import org.apache.tinkerpop.gremlin.structure.Graph.Features.{VertexFeatures, ElementFeatures}
 import org.apache.tinkerpop.gremlin.structure.VertexProperty.Cardinality
-import org.apache.tinkerpop.gremlin.structure.{Direction, Edge, Property, T, Vertex, VertexProperty}
+import org.apache.tinkerpop.gremlin.structure.{T, Vertex, Edge, Property, VertexProperty, Direction}
 import play.api.libs.json.Json
-
 import scala.collection.JavaConverters._
+
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper
 
 case class S2Vertex(graph: S2Graph,
                   id: VertexId,
@@ -165,14 +167,32 @@ case class S2Vertex(graph: S2Graph,
     }
   }
 
-  override def property[V](cardinality: Cardinality, key: String, value: V, objects: AnyRef*): VertexProperty[V] = {
-    S2Property.assertValidProp(key, value)
+  override def property[V](cardinality: Cardinality, key: String, value: V, keyValues: AnyRef*): VertexProperty[V] = {
+    S2Property.assertValidProp(graph, key, value)
+    val extraProps = S2Property.kvsToProps(graph, keyValues)
+
+//    if (key == T.id.name && !graph.features.vertex.willAllowId(value)) {
+//      throw VertexProperty.Exceptions.userSuppliedIdsOfThisTypeNotSupported
+//    }
+//    extraProps.foreach {
+//      case (k, v) if k == T.id.name && !graph.features.vertex.willAllowId(v) =>
+//        throw VertexProperty.Exceptions.userSuppliedIdsOfThisTypeNotSupported
+//      case _ =>
+//    }
+
+
 
     cardinality match {
       case Cardinality.single =>
         val columnMeta = serviceColumn.metasInvMap.getOrElse(key, throw new RuntimeException(s"$key is not configured on Vertex."))
         val newProps = new S2VertexProperty[V](this, columnMeta, key, value)
         props.put(key, newProps)
+
+        extraProps.foreach { case (k, v) =>
+          val columnMeta = serviceColumn.metasInvMap.getOrElse(k, throw new RuntimeException(s"$key is not configured on Vertex."))
+          val newProps = new S2VertexProperty(this, columnMeta, k, v)
+          props.put(k, newProps)
+        }
 
         // FIXME: save to persistent for tp test
         graph.addVertex(this)
@@ -187,8 +207,12 @@ case class S2Vertex(graph: S2Graph,
         if (!graph.features().edge().supportsUserSuppliedIds() && kvs.contains(T.id)) {
           throw Exceptions.userSuppliedIdsNotSupported()
         }
-
-        val props = S2Property.kvsToProps(kvs)
+        val props = S2Property.kvsToProps(graph, kvs)
+        props.foreach {
+          case (k, v) if k == T.id.name && !graph.features.edge.willAllowId(v) =>
+            throw Edge.Exceptions.userSuppliedIdsOfThisTypeNotSupported
+          case _ =>
+        }
 
         //TODO: direction, operation, _timestamp need to be reserved property key.
         val direction = props.get("direction").getOrElse("out").toString

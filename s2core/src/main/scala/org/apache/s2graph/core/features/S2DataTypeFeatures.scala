@@ -30,7 +30,7 @@ case class S2DataTypeFeatures() extends Features.DataTypeFeatures {
 
   override def supportsBooleanArrayValues(): Boolean = false
 
-  override def supportsSerializableValues(): Boolean = true
+  override def supportsSerializableValues(): Boolean = false
 
   override def supportsLongArrayValues(): Boolean = false
 
@@ -39,5 +39,7 @@ case class S2DataTypeFeatures() extends Features.DataTypeFeatures {
   override def supportsFloatArrayValues(): Boolean = false
 
   override def supportsByteArrayValues(): Boolean = false
+
+
 
 }
